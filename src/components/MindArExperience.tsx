@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
 import { MindARThree } from 'mind-ar/dist/mindar-image-three.prod.js'
 import { MINDAR_TARGET_SRC } from '../config'
 import { loadArModel } from '../utils/loadArModel'
+import { ArHud } from './ar/ArHud'
+import { LoadingOverlay } from './ar/LoadingOverlay'
+import { ScanOverlay } from './ar/ScanOverlay'
+import { StartScreen } from './ar/StartScreen'
+
+const ENTRANCE_SPEED = 0.12
 
 function disposeMindAR(mindar: MindARThree, container: HTMLElement) {
   mindar.renderer.setAnimationLoop(null)
@@ -14,9 +21,13 @@ function disposeMindAR(mindar: MindARThree, container: HTMLElement) {
 export function MindArExperience() {
   const containerRef = useRef<HTMLDivElement>(null)
   const mindarRef = useRef<MindARThree | null>(null)
+  const modelRef = useRef<THREE.Group | null>(null)
+  const entranceRef = useRef(0)
+  const trackingRef = useRef(false)
 
   const [isActive, setIsActive] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
+  const [loadingStep, setLoadingStep] = useState(0)
   const [isTracking, setIsTracking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,9 +38,13 @@ export function MindArExperience() {
       disposeMindAR(mindar, container)
     }
     mindarRef.current = null
+    modelRef.current = null
+    entranceRef.current = 0
+    trackingRef.current = false
     setIsActive(false)
     setIsTracking(false)
     setIsStarting(false)
+    setLoadingStep(0)
   }, [])
 
   const startAR = useCallback(async () => {
@@ -38,8 +53,10 @@ export function MindArExperience() {
 
     setError(null)
     setIsStarting(true)
+    setLoadingStep(0)
 
     try {
+      setLoadingStep(0)
       const mindarThree = new MindARThree({
         container,
         imageTargetSrc: MINDAR_TARGET_SRC,
@@ -49,20 +66,44 @@ export function MindArExperience() {
         filterMinCF: 0.0001,
         filterBeta: 0.001,
       })
-
       mindarRef.current = mindarThree
 
       const anchor = mindarThree.addAnchor(0)
-      anchor.onTargetFound = () => setIsTracking(true)
-      anchor.onTargetLost = () => setIsTracking(false)
 
+      anchor.onTargetFound = () => {
+        trackingRef.current = true
+        setIsTracking(true)
+        if (navigator.vibrate) navigator.vibrate(40)
+      }
+
+      anchor.onTargetLost = () => {
+        trackingRef.current = false
+        entranceRef.current = 0
+        setIsTracking(false)
+        if (modelRef.current) {
+          modelRef.current.scale.setScalar(0.001)
+        }
+      }
+
+      setLoadingStep(1)
       const model = await loadArModel()
+      model.scale.setScalar(0.001)
+      modelRef.current = model
       anchor.group.add(model)
 
+      setLoadingStep(2)
       const { renderer, scene, camera } = mindarThree
       await mindarThree.start()
 
       renderer.setAnimationLoop(() => {
+        if (trackingRef.current && modelRef.current) {
+          entranceRef.current = Math.min(
+            1,
+            entranceRef.current + ENTRANCE_SPEED,
+          )
+          const eased = 1 - Math.pow(1 - entranceRef.current, 3)
+          modelRef.current.scale.setScalar(Math.max(0.001, eased))
+        }
         renderer.render(scene, camera)
       })
 
@@ -83,6 +124,7 @@ export function MindArExperience() {
       setIsActive(false)
     } finally {
       setIsStarting(false)
+      setLoadingStep(0)
     }
   }, [isStarting])
 
@@ -97,61 +139,19 @@ export function MindArExperience() {
       />
 
       {!isActive && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 px-6 text-center">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight">MindAR Model</h1>
-            <p className="max-w-sm text-sm text-white/70">
-              Point your camera at the printed target image. The 3D model locks
-              onto it and stays in place.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void startAR()}
-            disabled={isStarting}
-            className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-black transition hover:bg-white/90 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
-          >
-            {isStarting ? 'Loading AR…' : 'Start AR'}
-          </button>
-
-          {error && (
-            <p className="max-w-sm text-sm text-red-400" role="alert">
-              {error}
-            </p>
-          )}
-
-          <div className="max-w-sm space-y-2 text-xs text-white/45">
-            <p>
-              Point your camera at your QR code (open{' '}
-              <code className="text-white/60">/qr-target.png</code> on another
-              screen or print it).
-            </p>
-            <p>
-              Recompile after changing the image:{' '}
-              <code className="text-white/60">npm run compile-target</code>
-            </p>
-          </div>
-        </div>
+        <StartScreen
+          onStart={() => void startAR()}
+          isLoading={isStarting}
+          error={error}
+        />
       )}
+
+      {isStarting && <LoadingOverlay step={loadingStep} />}
 
       {isActive && (
         <>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 to-transparent px-4 pb-6 pt-16">
-            <p className="text-center text-sm text-white/80">
-              {isTracking
-                ? 'Target found — model anchored'
-                : 'Point camera at the target image…'}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={stopAR}
-            className="absolute right-4 top-4 z-40 rounded-full bg-black/50 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-black/70"
-          >
-            Stop
-          </button>
+          <ScanOverlay isTracking={isTracking} />
+          <ArHud isTracking={isTracking} onClose={stopAR} />
         </>
       )}
     </div>

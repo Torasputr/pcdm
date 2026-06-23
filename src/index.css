@@ -10,4 +10,31 @@ body,
 body {
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+@keyframes scan-sweep {
+  0%,
+  100% {
+    top: 12%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  50% {
+    top: 88%;
+  }
+}
+
+.scan-line {
+  animation: scan-sweep 2.2s ease-in-out infinite;
 }
