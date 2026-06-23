@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import * as THREE from 'three'
 import { MindARThree } from 'mind-ar/dist/mindar-image-three.prod.js'
 import { MINDAR_TARGET_SRC } from '../config'
+import { addArLighting } from '../utils/arLighting'
 import { loadArModel } from '../utils/loadArModel'
 import { ArHud } from './ar/ArHud'
 import { LoadingOverlay } from './ar/LoadingOverlay'
@@ -10,17 +10,43 @@ import { StartScreen } from './ar/StartScreen'
 
 const ENTRANCE_SPEED = 0.12
 
-function configureMindARDisplay(mindar: MindARThree) {
-  const { renderer, video } = mindar
-
-  renderer.setClearColor(0x000000, 0)
-  renderer.domElement.style.background = 'transparent'
-  renderer.domElement.style.zIndex = '2'
-
-  video.style.zIndex = '1'
-  video.style.objectFit = 'cover'
+function forceFullScreenCamera(mindar: MindARThree) {
+  const { video, renderer, cssRenderer } = mindar
+  const width = window.innerWidth
+  const height = window.innerHeight
 
   mindar.resize()
+
+  const cover = {
+    position: 'absolute',
+    left: '0',
+    top: '0',
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    transform: 'none',
+  } as const
+
+  Object.assign(video.style, cover, { zIndex: '1' })
+
+  renderer.setSize(width, height, false)
+  Object.assign(renderer.domElement.style, {
+    position: 'absolute',
+    left: '0',
+    top: '0',
+    width: '100%',
+    height: '100%',
+    zIndex: '2',
+    background: 'transparent',
+  })
+
+  cssRenderer.domElement.style.display = 'none'
+  cssRenderer.setSize(width, height)
+}
+
+function configureMindARDisplay(mindar: MindARThree) {
+  mindar.renderer.setClearColor(0x000000, 0)
+  forceFullScreenCamera(mindar)
 }
 
 function disposeMindAR(mindar: MindARThree, container: HTMLElement) {
@@ -34,7 +60,9 @@ function disposeMindAR(mindar: MindARThree, container: HTMLElement) {
 export function MindArExperience() {
   const containerRef = useRef<HTMLDivElement>(null)
   const mindarRef = useRef<MindARThree | null>(null)
-  const modelRef = useRef<THREE.Group | null>(null)
+  const scaleGroupRef = useRef<{ scale: { setScalar: (n: number) => void } } | null>(
+    null,
+  )
   const entranceRef = useRef(0)
   const trackingRef = useRef(false)
 
@@ -51,7 +79,7 @@ export function MindArExperience() {
       disposeMindAR(mindar, container)
     }
     mindarRef.current = null
-    modelRef.current = null
+    scaleGroupRef.current = null
     entranceRef.current = 0
     trackingRef.current = false
     setIsActive(false)
@@ -80,6 +108,8 @@ export function MindArExperience() {
       })
       mindarRef.current = mindarThree
 
+      addArLighting(mindarThree.scene)
+
       const anchor = mindarThree.addAnchor(0)
 
       anchor.onTargetFound = () => {
@@ -92,16 +122,14 @@ export function MindArExperience() {
         trackingRef.current = false
         entranceRef.current = 0
         setIsTracking(false)
-        if (modelRef.current) {
-          modelRef.current.scale.setScalar(0.001)
-        }
+        scaleGroupRef.current?.scale.setScalar(0.001)
       }
 
       setLoadingStep(1)
-      const model = await loadArModel()
-      model.scale.setScalar(0.001)
-      modelRef.current = model
-      anchor.group.add(model)
+      const { root, scaleGroup } = await loadArModel()
+      scaleGroup.scale.setScalar(0.001)
+      scaleGroupRef.current = scaleGroup
+      anchor.group.add(root)
 
       setLoadingStep(2)
       const { renderer, scene, camera } = mindarThree
@@ -110,13 +138,13 @@ export function MindArExperience() {
       configureMindARDisplay(mindarThree)
 
       renderer.setAnimationLoop(() => {
-        if (trackingRef.current && modelRef.current) {
+        if (trackingRef.current && scaleGroupRef.current) {
           entranceRef.current = Math.min(
             1,
             entranceRef.current + ENTRANCE_SPEED,
           )
           const eased = 1 - Math.pow(1 - entranceRef.current, 3)
-          modelRef.current.scale.setScalar(Math.max(0.001, eased))
+          scaleGroupRef.current.scale.setScalar(Math.max(0.001, eased))
         }
         renderer.render(scene, camera)
       })
@@ -125,7 +153,7 @@ export function MindArExperience() {
       setIsActive(true)
 
       requestAnimationFrame(() => {
-        mindarRef.current?.resize()
+        if (mindarRef.current) configureMindARDisplay(mindarRef.current)
       })
     } catch (err) {
       const container = containerRef.current
@@ -148,18 +176,25 @@ export function MindArExperience() {
   useEffect(() => {
     if (!isActive) return
 
-    const onResize = () => mindarRef.current?.resize()
+    const onResize = () => {
+      if (mindarRef.current) configureMindARDisplay(mindarRef.current)
+    }
+
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
   }, [isActive])
 
   useEffect(() => () => stopAR(), [stopAR])
 
   return (
-    <div className="relative h-full w-full bg-black text-white">
+    <div className="fixed inset-0 bg-black text-white">
       <div
         ref={containerRef}
-        className="relative z-0 h-full w-full overflow-hidden"
+        className="ar-viewport absolute inset-0 overflow-hidden"
       />
 
       {!isActive && (

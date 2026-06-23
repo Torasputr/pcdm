@@ -28,7 +28,7 @@ declare module 'mind-ar/dist/mindar-image-three.prod.js' {
     container: HTMLElement
     video: HTMLVideoElement
     renderer: WebGLRenderer
-    cssRenderer: { domElement: HTMLElement }
+    cssRenderer: { domElement: HTMLElement; setSize: (w: number, h: number) => void }
     scene: Scene
     camera: Camera
     anchors: MindARAnchor[]

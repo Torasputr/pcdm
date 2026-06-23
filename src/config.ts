@@ -16,6 +16,7 @@ export const AR_MODEL_FALLBACK =
 
 export const MINDAR_TARGET_SRC = '/targets.mind'
 
-export const MODEL_POSITION = { x: 0.5, y: 0.85, z: 0.15 }
+// MindAR anchor space: target width ~= 1 unit. (0.5, 0.5) = center of QR.
+export const MODEL_POSITION = { x: 0.5, y: 0.5, z: 0.08 }
 export const MODEL_ROTATION = { x: 0, y: 0, z: 0 }
-export const MODEL_SCALE = 0.45
+export const MODEL_SCALE = 0.38

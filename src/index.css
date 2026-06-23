@@ -38,3 +38,19 @@ body {
 .scan-line {
   animation: scan-sweep 2.2s ease-in-out infinite;
 }
+
+.ar-viewport video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transform: none !important;
+}
+
+.ar-viewport canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
