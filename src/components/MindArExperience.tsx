@@ -10,6 +10,19 @@ import { StartScreen } from './ar/StartScreen'
 
 const ENTRANCE_SPEED = 0.12
 
+function configureMindARDisplay(mindar: MindARThree) {
+  const { renderer, video } = mindar
+
+  renderer.setClearColor(0x000000, 0)
+  renderer.domElement.style.background = 'transparent'
+  renderer.domElement.style.zIndex = '2'
+
+  video.style.zIndex = '1'
+  video.style.objectFit = 'cover'
+
+  mindar.resize()
+}
+
 function disposeMindAR(mindar: MindARThree, container: HTMLElement) {
   mindar.renderer.setAnimationLoop(null)
   mindar.stop()
@@ -56,7 +69,6 @@ export function MindArExperience() {
     setLoadingStep(0)
 
     try {
-      setLoadingStep(0)
       const mindarThree = new MindARThree({
         container,
         imageTargetSrc: MINDAR_TARGET_SRC,
@@ -95,6 +107,8 @@ export function MindArExperience() {
       const { renderer, scene, camera } = mindarThree
       await mindarThree.start()
 
+      configureMindARDisplay(mindarThree)
+
       renderer.setAnimationLoop(() => {
         if (trackingRef.current && modelRef.current) {
           entranceRef.current = Math.min(
@@ -107,7 +121,12 @@ export function MindArExperience() {
         renderer.render(scene, camera)
       })
 
+      setIsStarting(false)
       setIsActive(true)
+
+      requestAnimationFrame(() => {
+        mindarRef.current?.resize()
+      })
     } catch (err) {
       const container = containerRef.current
       if (mindarRef.current && container) {
@@ -122,11 +141,17 @@ export function MindArExperience() {
 
       setError(message)
       setIsActive(false)
-    } finally {
       setIsStarting(false)
-      setLoadingStep(0)
     }
   }, [isStarting])
+
+  useEffect(() => {
+    if (!isActive) return
+
+    const onResize = () => mindarRef.current?.resize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [isActive])
 
   useEffect(() => () => stopAR(), [stopAR])
 
@@ -134,8 +159,7 @@ export function MindArExperience() {
     <div className="relative h-full w-full bg-black text-white">
       <div
         ref={containerRef}
-        className={`h-full w-full ${isActive ? '' : 'invisible'}`}
-        aria-hidden={!isActive}
+        className="relative z-0 h-full w-full overflow-hidden"
       />
 
       {!isActive && (
@@ -146,7 +170,7 @@ export function MindArExperience() {
         />
       )}
 
-      {isStarting && <LoadingOverlay step={loadingStep} />}
+      {isStarting && !isActive && <LoadingOverlay step={loadingStep} />}
 
       {isActive && (
         <>
