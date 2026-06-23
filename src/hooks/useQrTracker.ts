@@ -9,6 +9,30 @@ import {
 const SMOOTHING = 0.35
 const LOST_TRACK_MS = 450
 
+function waitForVideoReady(video: HTMLVideoElement) {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    return Promise.resolve()
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const onReady = () => {
+      cleanup()
+      resolve()
+    }
+    const onError = () => {
+      cleanup()
+      reject(new Error('Camera preview failed to start.'))
+    }
+    const cleanup = () => {
+      video.removeEventListener('loadeddata', onReady)
+      video.removeEventListener('error', onError)
+    }
+
+    video.addEventListener('loadeddata', onReady)
+    video.addEventListener('error', onError)
+  })
+}
+
 export function useQrTracker() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -20,23 +44,40 @@ export function useQrTracker() {
 
   const [pose, setPose] = useState<OverlayPose | null>(null)
   const [isActive, setIsActive] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const stopCamera = useCallback(() => {
     cancelAnimationFrame(rafRef.current)
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
+
+    const video = videoRef.current
+    if (video) {
+      video.srcObject = null
+    }
+
     smoothedPoseRef.current = null
     lastDetectedRef.current = 0
+    setIsStarting(false)
     setIsActive(false)
     setPose(null)
   }, [])
 
   const startCamera = useCallback(async () => {
     setError(null)
+    setIsStarting(true)
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('Camera is not supported in this browser.')
+      setIsStarting(false)
+      return
+    }
+
+    const video = videoRef.current
+    if (!video) {
+      setError('Camera preview is not ready. Refresh and try again.')
+      setIsStarting(false)
       return
     }
 
@@ -50,21 +91,34 @@ export function useQrTracker() {
         audio: false,
       })
 
-      const video = videoRef.current
-      if (!video) {
-        stream.getTracks().forEach((track) => track.stop())
-        return
-      }
-
       streamRef.current = stream
       video.srcObject = stream
+      video.muted = true
+      video.playsInline = true
       video.setAttribute('playsinline', 'true')
-      await video.play()
+
+      try {
+        await video.play()
+      } catch {
+        // Some browsers reject play() even after a tap; loadeddata is enough.
+      }
+
+      await waitForVideoReady(video)
       setIsActive(true)
-    } catch {
-      setError(
-        'Could not access the camera. Allow camera permission and use HTTPS.',
-      )
+    } catch (err) {
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+      video.srcObject = null
+
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not access the camera. Allow camera permission and use HTTPS.'
+
+      setError(message)
+      setIsActive(false)
+    } finally {
+      setIsStarting(false)
     }
   }, [])
 
@@ -147,6 +201,7 @@ export function useQrTracker() {
     containerRef,
     pose,
     isActive,
+    isStarting,
     error,
     startCamera,
     stopCamera,
