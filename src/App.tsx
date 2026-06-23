@@ -1,7 +1,7 @@
-import { ArExperience } from './components/ArExperience'
+import { MindArExperience } from './components/MindArExperience'
 
 function App() {
-  return <ArExperience />
+  return <MindArExperience />
 }
 
 export default App

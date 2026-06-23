@@ -1,9 +1,15 @@
-// Drop your GLB at `public/model.glb` and set this to '/model.glb'.
+// Drop your GLB at `public/model.glb`
 export const AR_MODEL_SRC = '/model.glb'
 
-// Used when no local model is present yet.
 export const AR_MODEL_FALLBACK =
   'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
 
-// If tracking still feels wrong on your phone, try -90 or 0.
-export const CAMERA_FRAME_ROTATION: number = 90
+// Compiled MindAR target. Replace with your own from:
+// https://hiukim.github.io/mind-ar-js-doc/tools/compile
+export const MINDAR_TARGET_SRC = '/targets.mind'
+
+// Model transform in MindAR anchor space (target width ~= 1 unit).
+// Raise `y` to float higher above the printed target.
+export const MODEL_POSITION = { x: 0.5, y: 0.85, z: 0.15 }
+export const MODEL_ROTATION = { x: 0, y: 0, z: 0 }
+export const MODEL_SCALE = 0.45
