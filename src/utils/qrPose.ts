@@ -17,43 +17,8 @@ interface QrLocation {
   bottomLeftCorner: Point
 }
 
-function videoToDisplay(
-  point: Point,
-  videoWidth: number,
-  videoHeight: number,
-  displayWidth: number,
-  displayHeight: number,
-): Point {
-  const videoAspect = videoWidth / videoHeight
-  const displayAspect = displayWidth / displayHeight
-
-  let scale: number
-  let offsetX: number
-  let offsetY: number
-
-  if (videoAspect > displayAspect) {
-    scale = displayHeight / videoHeight
-    offsetX = (displayWidth - videoWidth * scale) / 2
-    offsetY = 0
-  } else {
-    scale = displayWidth / videoWidth
-    offsetX = 0
-    offsetY = (displayHeight - videoHeight * scale) / 2
-  }
-
-  return {
-    x: point.x * scale + offsetX,
-    y: point.y * scale + offsetY,
-  }
-}
-
-export function computeOverlayPose(
-  location: QrLocation,
-  videoWidth: number,
-  videoHeight: number,
-  displayWidth: number,
-  displayHeight: number,
-): OverlayPose {
+/** Pose in on-screen pixels — matches the visible camera preview. */
+export function computeOverlayPose(location: QrLocation): OverlayPose {
   const { topLeftCorner: tl, topRightCorner: tr, bottomLeftCorner: bl } =
     location
 
@@ -81,41 +46,13 @@ export function computeOverlayPose(
     y: center.y + upY * (qrHeight / 2 + offset),
   }
 
-  const displayCenter = videoToDisplay(
-    overlayCenter,
-    videoWidth,
-    videoHeight,
-    displayWidth,
-    displayHeight,
-  )
-  const displayTL = videoToDisplay(
-    tl,
-    videoWidth,
-    videoHeight,
-    displayWidth,
-    displayHeight,
-  )
-  const displayTR = videoToDisplay(
-    tr,
-    videoWidth,
-    videoHeight,
-    displayWidth,
-    displayHeight,
-  )
-
-  const qrDisplayWidth = Math.hypot(
-    displayTR.x - displayTL.x,
-    displayTR.y - displayTL.y,
-  )
-  const rotation = Math.atan2(
-    displayTR.y - displayTL.y,
-    displayTR.x - displayTL.x,
-  )
+  const qrWidth = Math.hypot(tr.x - tl.x, tr.y - tl.y)
+  const rotation = Math.atan2(tr.y - tl.y, tr.x - tl.x)
 
   return {
-    x: displayCenter.x,
-    y: displayCenter.y,
-    width: qrDisplayWidth * 1.8,
+    x: overlayCenter.x,
+    y: overlayCenter.y,
+    width: qrWidth * 1.8,
     rotation,
   }
 }

@@ -40,6 +40,8 @@ async function loadModel(url: string) {
   const gltf = await loader.loadAsync(url)
   const model = gltf.scene
   normalizeModel(model)
+  // GLB models are Y-up; screen space is Y-down in our orthographic camera.
+  model.rotation.x = Math.PI
   return model
 }
 
@@ -49,7 +51,6 @@ export function ModelOverlay({ pose, width, height }: ModelOverlayProps) {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null)
   const anchorRef = useRef<THREE.Group | null>(null)
-  const spinRef = useRef<THREE.Group | null>(null)
   const modelRef = useRef<THREE.Object3D | null>(null)
 
   poseRef.current = pose
@@ -80,14 +81,11 @@ export function ModelOverlay({ pose, width, height }: ModelOverlayProps) {
     scene.add(fillLight)
 
     const anchor = new THREE.Group()
-    const spin = new THREE.Group()
-    anchor.add(spin)
     scene.add(anchor)
 
     rendererRef.current = renderer
     cameraRef.current = camera
     anchorRef.current = anchor
-    spinRef.current = spin
 
     let disposed = false
 
@@ -97,11 +95,11 @@ export function ModelOverlay({ pose, width, height }: ModelOverlayProps) {
         return
       }
       if (modelRef.current) {
-        spin.remove(modelRef.current)
+        anchor.remove(modelRef.current)
         disposeObject(modelRef.current)
       }
       modelRef.current = loaded
-      spin.add(loaded)
+      anchor.add(loaded)
     }
 
     void loadModel(AR_MODEL_SRC)
@@ -118,8 +116,7 @@ export function ModelOverlay({ pose, width, height }: ModelOverlayProps) {
         anchor.visible = true
         anchor.position.set(currentPose.x, currentPose.y, 0)
         anchor.rotation.z = currentPose.rotation
-        spin.rotation.y += 0.012
-        spin.scale.setScalar(currentPose.width)
+        anchor.scale.setScalar(currentPose.width)
       } else {
         anchor.visible = false
       }
@@ -140,7 +137,6 @@ export function ModelOverlay({ pose, width, height }: ModelOverlayProps) {
       rendererRef.current = null
       cameraRef.current = null
       anchorRef.current = null
-      spinRef.current = null
     }
   }, [])
 

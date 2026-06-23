@@ -5,9 +5,10 @@ import {
   smoothPose,
   type OverlayPose,
 } from '../utils/qrPose'
+import { drawVideoFrameMatchingPreview } from '../utils/videoCover'
 
-const SMOOTHING = 0.35
-const LOST_TRACK_MS = 450
+const SMOOTHING = 0.72
+const LOST_TRACK_MS = 350
 
 function waitForVideoReady(video: HTMLVideoElement) {
   if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
@@ -133,58 +134,41 @@ export function useQrTracker() {
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (!ctx) return
 
-    let frame = 0
-
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick)
-      frame += 1
 
       if (video.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) return
 
       const now = Date.now()
-      const shouldScan = frame % 2 === 0
+      const { width, height } = container.getBoundingClientRect()
+      if (!width || !height) return
 
-      if (shouldScan) {
-        const videoWidth = video.videoWidth
-        const videoHeight = video.videoHeight
-        if (videoWidth && videoHeight) {
-          canvas.width = videoWidth
-          canvas.height = videoHeight
-          ctx.drawImage(video, 0, 0, videoWidth, videoHeight)
+      canvas.width = width
+      canvas.height = height
+      drawVideoFrameMatchingPreview(ctx, video, width, height)
 
-          const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight)
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert',
-          })
+      const imageData = ctx.getImageData(0, 0, width, height)
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'attemptBoth',
+      })
 
-          if (code?.location) {
-            const { width, height } = container.getBoundingClientRect()
-            const nextPose = computeOverlayPose(
-              code.location,
-              videoWidth,
-              videoHeight,
-              width,
-              height,
-            )
-            smoothedPoseRef.current = smoothPose(
-              smoothedPoseRef.current,
-              nextPose,
-              SMOOTHING,
-            )
-            lastDetectedRef.current = now
-            setPose({ ...smoothedPoseRef.current })
-          }
-        }
-      }
-
-      if (
+      if (code?.location) {
+        const nextPose = computeOverlayPose(code.location)
+        smoothedPoseRef.current = smoothPose(
+          smoothedPoseRef.current,
+          nextPose,
+          SMOOTHING,
+        )
+        lastDetectedRef.current = now
+        setPose({ ...smoothedPoseRef.current })
+      } else if (
         lastDetectedRef.current > 0 &&
         now - lastDetectedRef.current > LOST_TRACK_MS
       ) {
         smoothedPoseRef.current = null
         setPose(null)
         lastDetectedRef.current = 0
-      } else if (!shouldScan && smoothedPoseRef.current) {
+      } else if (smoothedPoseRef.current) {
         setPose({ ...smoothedPoseRef.current })
       }
     }
