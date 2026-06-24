@@ -2,11 +2,21 @@ import { scene } from '../config/scene'
 
 export function ScanHud({
   isTracking,
+  hasAnimations,
+  activeAnimation,
   onClose,
 }: {
   isTracking: boolean
+  hasAnimations: boolean
+  activeAnimation: string | null
   onClose: () => void
 }) {
+  const bottomHint = !isTracking
+    ? scene.scanningHint
+    : hasAnimations
+      ? scene.tapToAnimateHint
+      : scene.foundHint
+
   return (
     <>
       <div className="pointer-events-none absolute inset-0 z-30">
@@ -55,7 +65,10 @@ export function ScanHud({
         </div>
         <button
           type="button"
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-lg backdrop-blur-md"
           aria-label="Close"
         >
@@ -64,9 +77,10 @@ export function ScanHud({
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black/75 to-transparent px-6 pb-8 pt-12">
-        <p className="text-center text-sm text-white/75">
-          {isTracking ? scene.foundHint : scene.scanningHint}
-        </p>
+        <p className="text-center text-sm text-white/75">{bottomHint}</p>
+        {isTracking && activeAnimation && (
+          <p className="mt-1 text-center text-xs text-white/45">{activeAnimation}</p>
+        )}
       </div>
     </>
   )

@@ -9,6 +9,8 @@ export function ArApp() {
     phase,
     loadingStep,
     isTracking,
+    hasAnimations,
+    activeAnimation,
     error,
     start,
     stop,
@@ -16,7 +18,10 @@ export function ArApp() {
 
   return (
     <div className="fixed inset-0 bg-black text-white">
-      <div ref={containerRef} className="ar-viewport absolute inset-0 overflow-hidden" />
+      <div
+        ref={containerRef}
+        className="ar-viewport absolute inset-0 cursor-pointer overflow-hidden"
+      />
 
       {phase === 'idle' && (
         <StartScreen
@@ -28,7 +33,14 @@ export function ArApp() {
 
       {phase === 'loading' && <LoadingScreen step={loadingStep} />}
 
-      {phase === 'ar' && <ScanHud isTracking={isTracking} onClose={stop} />}
+      {phase === 'ar' && (
+        <ScanHud
+          isTracking={isTracking}
+          hasAnimations={hasAnimations}
+          activeAnimation={activeAnimation}
+          onClose={stop}
+        />
+      )}
     </div>
   )
 }

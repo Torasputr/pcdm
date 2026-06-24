@@ -1,10 +1,12 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { scene } from '../config/scene'
+import { ModelAnimations } from './modelAnimations'
 
 export interface CardModel {
   root: THREE.Group
   scaleGroup: THREE.Group
+  animations: ModelAnimations | null
 }
 
 export async function loadCardModel(): Promise<CardModel> {
@@ -58,5 +60,10 @@ export async function loadCardModel(): Promise<CardModel> {
     scene.model.rotation.z,
   )
 
-  return { root, scaleGroup }
+  const animations =
+    gltf.animations.length > 0
+      ? new ModelAnimations(model, gltf.animations)
+      : null
+
+  return { root, scaleGroup, animations }
 }

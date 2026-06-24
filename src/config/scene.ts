@@ -17,6 +17,7 @@ export const scene = {
   startButton: 'Start AR Experience',
   scanningHint: 'Align your WIFI KAWANKU card inside the frame',
   foundHint: 'Move around to explore from different angles',
+  tapToAnimateHint: 'Tap the screen to play animations',
   loadingSteps: ['Preparing AR', 'Loading 3D model', 'Starting camera'],
 
   /**
