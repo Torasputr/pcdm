@@ -10,12 +10,7 @@ body,
 body {
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 @keyframes scan-sweep {
@@ -24,9 +19,7 @@ body {
     top: 12%;
     opacity: 0;
   }
-  10% {
-    opacity: 1;
-  }
+  10%,
   90% {
     opacity: 1;
   }
@@ -39,18 +32,15 @@ body {
   animation: scan-sweep 2.2s ease-in-out infinite;
 }
 
-.ar-viewport video {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  transform: none !important;
-}
-
+.ar-viewport video,
 .ar-viewport canvas {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+}
+
+.ar-viewport video {
+  object-fit: cover !important;
+  transform: none !important;
 }

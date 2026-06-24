@@ -22,10 +22,8 @@ class NodeCompiler extends CompilerBase {
       const list = []
 
       for (let i = 0; i < targetImages.length; i++) {
-        const targetImage = targetImages[i]
-        const imageList = buildTrackingImageList(targetImage)
+        const imageList = buildTrackingImageList(targetImages[i])
         const percentPerAction = percentPerImage / imageList.length
-
         const trackingData = extractTrackingFeatures(imageList, () => {
           percent += percentPerAction
           progressCallback(basePercent + percent)
@@ -38,8 +36,8 @@ class NodeCompiler extends CompilerBase {
   }
 }
 
-const imagePath = process.argv[2] ?? join(__dirname, '../public/qr-target.png')
-const outputPath = process.argv[3] ?? join(__dirname, '../public/targets.mind')
+const imagePath = process.argv[2] ?? join(__dirname, '../public/scene/card-target.png')
+const outputPath = process.argv[3] ?? join(__dirname, '../public/scene/card-target.mind')
 
 await tf.setBackend('cpu')
 await tf.ready()
@@ -48,12 +46,9 @@ const img = await loadImage(readFileSync(imagePath))
 const compiler = new NodeCompiler()
 
 process.stdout.write(`Compiling ${imagePath}...\n`)
-
-await compiler.compileImageTargets([img], (percent) => {
-  process.stdout.write(`\rProgress: ${percent.toFixed(1)}%`)
+await compiler.compileImageTargets([img], (p) => {
+  process.stdout.write(`\rProgress: ${p.toFixed(1)}%`)
 })
 
-const buffer = compiler.exportData()
-writeFileSync(outputPath, Buffer.from(buffer))
-
-process.stdout.write(`\nSaved ${outputPath} (${buffer.byteLength} bytes)\n`)
+writeFileSync(outputPath, Buffer.from(compiler.exportData()))
+process.stdout.write(`\nSaved ${outputPath}\n`)
