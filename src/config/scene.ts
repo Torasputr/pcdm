@@ -19,10 +19,13 @@ export const scene = {
   foundHint: 'Move around to explore from different angles',
   loadingSteps: ['Preparing AR', 'Loading 3D model', 'Starting camera'],
 
-  /** Model placement on the card (MindAR anchor space, card width ≈ 1). */
+  /**
+   * MindAR anchor origin = center of the card image.
+   * Use (0, 0) for dead center; z pops the model toward the camera.
+   */
   model: {
-    position: { x: 0.5, y: 0.5, z: 0.1 },
+    position: { x: 0, y: 0, z: 0.12 },
     rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.32,
+    scale: 0.28,
   },
 }
