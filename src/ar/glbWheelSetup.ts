@@ -9,6 +9,9 @@ const MESH_COLORS: Record<string, string> = {
   pCylinderShape1: '#FFD700',
 }
 
+/** Locked upright portrait layout — matches the printed card orientation. */
+const LOCKED_ROTATION = scene.model.rotation
+
 export function applyGlbMaterials(model: THREE.Object3D) {
   model.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return
@@ -22,12 +25,8 @@ export function applyGlbMaterials(model: THREE.Object3D) {
   })
 }
 
-/**
- * Upright on the card (portrait X/Y), back flush on the card, wheel toward camera.
- * Blender export lives in -Z; shift +Z so the front faces the viewer.
- */
 export function prepareWheelGlbModel(model: THREE.Object3D) {
-  model.rotation.set(0, 0, 0)
+  model.rotation.set(LOCKED_ROTATION.x, LOCKED_ROTATION.y, LOCKED_ROTATION.z)
 
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())
@@ -43,17 +42,36 @@ export function createWheelSpinClips(model: THREE.Object3D): THREE.AnimationClip
   const wheel = model.getObjectByName('pDisc1')
   if (!wheel) return []
 
+  // Maya rotateZ 0→360; negate for clockwise when viewed from the front.
   const path = `${wheel.name}.rotation[z]`
 
   return [
     new THREE.AnimationClip('Spin', 2.4, [
-      new THREE.NumberKeyframeTrack(path, [0, 2.4], [0, Math.PI * 2]),
+      new THREE.NumberKeyframeTrack(path, [0, 2.4], [0, -Math.PI * 2]),
     ]),
     new THREE.AnimationClip('Big Spin', 3.2, [
-      new THREE.NumberKeyframeTrack(path, [0, 3.2], [0, Math.PI * 2 * 3]),
+      new THREE.NumberKeyframeTrack(path, [0, 3.2], [0, -Math.PI * 2 * 3]),
     ]),
     new THREE.AnimationClip('Slow Spin', 4, [
-      new THREE.NumberKeyframeTrack(path, [0, 4], [0, Math.PI * 2]),
+      new THREE.NumberKeyframeTrack(path, [0, 4], [0, -Math.PI * 2]),
     ]),
   ]
+}
+
+/** Reverse spin direction on clips exported from the GLB (e.g. Blender/Maya). */
+export function normalizeWheelClips(clips: THREE.AnimationClip[]): THREE.AnimationClip[] {
+  return clips.map((clip) => {
+    const tracks = clip.tracks.map((track) => {
+      if (!track.name.includes('rotation')) return track
+
+      const values = Array.from(track.values, (v) => -v)
+      return new THREE.NumberKeyframeTrack(
+        track.name,
+        track.times.slice(),
+        values,
+      )
+    })
+
+    return new THREE.AnimationClip(clip.name, clip.duration, tracks)
+  })
 }

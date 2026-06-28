@@ -4,6 +4,7 @@ import { scene } from '../config/scene'
 import {
   applyGlbMaterials,
   createWheelSpinClips,
+  normalizeWheelClips,
   prepareWheelGlbModel,
 } from './glbWheelSetup'
 import { ModelAnimations } from './modelAnimations'
@@ -74,7 +75,7 @@ export async function loadCardModel(): Promise<CardModel> {
 
   const clips =
     gltf.animations.length > 0
-      ? gltf.animations
+      ? normalizeWheelClips(gltf.animations)
       : createWheelSpinClips(model)
 
   return wrapModel(model, clips, true)

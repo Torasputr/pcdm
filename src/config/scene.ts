@@ -23,12 +23,12 @@ export const scene = {
   loadingSteps: ['Preparing AR', 'Loading 3D model', 'Starting camera'],
 
   /**
-   * MindAR anchor origin = center of the card image.
-   * scale 1.0 ≈ matches the card height; z lifts slightly off the card plane.
+   * Locked GLB layout on the card (do not change unless the export changes).
+   * scale: 1.0 ≈ card height; values > 1 spill past the card edges.
    */
   model: {
     position: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
-    scale: 1.3,
+    scale: 2.5,
   },
 }
