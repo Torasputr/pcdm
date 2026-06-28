@@ -22,15 +22,18 @@ export function applyGlbMaterials(model: THREE.Object3D) {
   })
 }
 
-/** Orient Blender export so the wheel faces the camera and sits on the card. */
+/**
+ * Lay the model upright on the card — same orientation as the printed target:
+ * X/Y aligned with the card, depth popping toward the camera (+Z).
+ */
 export function prepareWheelGlbModel(model: THREE.Object3D) {
-  // Authored Y-up, wheel disc normal along +X, assembly depth in -Z.
-  model.rotation.set(0, Math.PI / 2, 0)
+  // Blender export sits in -Z; flip 180° on Y so depth extends out of the card.
+  model.rotation.set(0, Math.PI, 0)
 
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())
-  const maxDim = Math.max(size.x, size.y, size.z) || 1
-  model.scale.multiplyScalar(scene.model.scale / maxDim)
+  const fitDim = Math.max(size.x, size.y) || 1
+  model.scale.multiplyScalar(scene.model.scale / fitDim)
 
   box.setFromObject(model)
   model.position.sub(box.getCenter(new THREE.Vector3()))

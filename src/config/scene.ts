@@ -24,11 +24,11 @@ export const scene = {
 
   /**
    * MindAR anchor origin = center of the card image.
-   * Use (0, 0) for dead center; z pops the model toward the camera.
+   * scale 1.0 ≈ matches the card height; z lifts slightly off the card plane.
    */
   model: {
-    position: { x: 0, y: 0, z: 0.02 },
+    position: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.85,
+    scale: 1.05,
   },
 }

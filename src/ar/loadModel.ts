@@ -40,19 +40,13 @@ function wrapModel(
 
   const root = new THREE.Group()
   root.add(scaleGroup)
+  root.position.set(
+    scene.model.position.x,
+    scene.model.position.y,
+    scene.model.position.z,
+  )
 
-  if (useGlbLayout) {
-    root.position.set(
-      scene.model.position.x,
-      scene.model.position.y,
-      scene.model.position.z,
-    )
-  } else {
-    root.position.set(
-      scene.model.position.x,
-      scene.model.position.y,
-      scene.model.position.z,
-    )
+  if (!useGlbLayout) {
     root.rotation.set(
       scene.model.rotation.x,
       scene.model.rotation.y,
