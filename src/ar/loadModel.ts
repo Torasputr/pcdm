@@ -1,7 +1,11 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { scene } from '../config/scene'
-import { applyGlbMaterials, createWheelSpinClips } from './glbWheelSetup'
+import {
+  applyGlbMaterials,
+  createWheelSpinClips,
+  prepareWheelGlbModel,
+} from './glbWheelSetup'
 import { ModelAnimations } from './modelAnimations'
 import { buildWheelOfFortuneModel } from './wheelOfFortuneModel'
 
@@ -11,7 +15,7 @@ export interface CardModel {
   animations: ModelAnimations | null
 }
 
-function applyModelTransform(model: THREE.Object3D) {
+function applyProceduralTransform(model: THREE.Object3D) {
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())
   const maxDim = Math.max(size.x, size.y, size.z) || 1
@@ -19,28 +23,42 @@ function applyModelTransform(model: THREE.Object3D) {
 
   box.setFromObject(model)
   model.position.sub(box.getCenter(new THREE.Vector3()))
-  box.setFromObject(model)
   model.position.y -= box.min.y
 }
 
-function wrapModel(model: THREE.Object3D, clips: THREE.AnimationClip[]): CardModel {
-  applyModelTransform(model)
+function wrapModel(
+  model: THREE.Object3D,
+  clips: THREE.AnimationClip[],
+  useGlbLayout: boolean,
+): CardModel {
+  if (!useGlbLayout) {
+    applyProceduralTransform(model)
+  }
 
   const scaleGroup = new THREE.Group()
   scaleGroup.add(model)
 
   const root = new THREE.Group()
   root.add(scaleGroup)
-  root.position.set(
-    scene.model.position.x,
-    scene.model.position.y,
-    scene.model.position.z,
-  )
-  root.rotation.set(
-    scene.model.rotation.x,
-    scene.model.rotation.y,
-    scene.model.rotation.z,
-  )
+
+  if (useGlbLayout) {
+    root.position.set(
+      scene.model.position.x,
+      scene.model.position.y,
+      scene.model.position.z,
+    )
+  } else {
+    root.position.set(
+      scene.model.position.x,
+      scene.model.position.y,
+      scene.model.position.z,
+    )
+    root.rotation.set(
+      scene.model.rotation.x,
+      scene.model.rotation.y,
+      scene.model.rotation.z,
+    )
+  }
 
   const animations =
     clips.length > 0 ? new ModelAnimations(model, clips) : null
@@ -51,18 +69,19 @@ function wrapModel(model: THREE.Object3D, clips: THREE.AnimationClip[]): CardMod
 export async function loadCardModel(): Promise<CardModel> {
   if (scene.modelKind === 'procedural') {
     const { model, clips } = buildWheelOfFortuneModel()
-    return wrapModel(model, clips)
+    return wrapModel(model, clips, false)
   }
 
   const gltf = await new GLTFLoader().loadAsync(scene.modelFile)
   const model = gltf.scene
 
   applyGlbMaterials(model)
+  prepareWheelGlbModel(model)
 
   const clips =
     gltf.animations.length > 0
       ? gltf.animations
       : createWheelSpinClips(model)
 
-  return wrapModel(model, clips)
+  return wrapModel(model, clips, true)
 }

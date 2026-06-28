@@ -1,9 +1,10 @@
 import * as THREE from 'three'
+import { scene } from '../config/scene'
 
 const MESH_COLORS: Record<string, string> = {
   pDiscShape1: '#E63946',
   pDiscShape2: '#FFD700',
-  pCubeShape1: '#1a1a2e',
+  pCubeShape1: '#2d3436',
   pCubeShape2: '#C9A227',
   pCylinderShape1: '#FFD700',
 }
@@ -13,45 +14,34 @@ export function applyGlbMaterials(model: THREE.Object3D) {
     if (!(child instanceof THREE.Mesh)) return
 
     const color = MESH_COLORS[child.name] ?? '#888899'
-    const needsMaterial =
-      !child.material ||
-      (Array.isArray(child.material) && child.material.length === 0)
-
-    if (needsMaterial) {
-      child.material = new THREE.MeshStandardMaterial({
-        color,
-        roughness: 0.55,
-        metalness: child.name.includes('Disc') ? 0.25 : 0.1,
-      })
-      return
-    }
-
-    const mats = Array.isArray(child.material) ? child.material : [child.material]
-    mats.forEach((mat) => {
-      if (
-        mat instanceof THREE.MeshStandardMaterial ||
-        mat instanceof THREE.MeshPhysicalMaterial
-      ) {
-        if (!mat.map && mat.color.getHex() === 0xffffff) {
-          mat.color.set(color)
-        }
-        mat.metalness = Math.min(mat.metalness, 0.35)
-        mat.roughness = Math.max(mat.roughness, 0.4)
-      }
-      mat.needsUpdate = true
+    child.material = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.5,
+      metalness: child.name.includes('Disc') || child.name.includes('Cylinder') ? 0.35 : 0.1,
     })
   })
 }
 
-export function createWheelSpinClips(model: THREE.Object3D): THREE.AnimationClip[] {
-  const wheel =
-    model.getObjectByName('pDisc1') ??
-    model.children.find((child) => child.name.toLowerCase().includes('disc'))
+/** Orient Blender export so the wheel faces the camera and sits on the card. */
+export function prepareWheelGlbModel(model: THREE.Object3D) {
+  // Authored Y-up, wheel disc normal along +X, assembly depth in -Z.
+  model.rotation.set(0, Math.PI / 2, 0)
 
+  const box = new THREE.Box3().setFromObject(model)
+  const size = box.getSize(new THREE.Vector3())
+  const maxDim = Math.max(size.x, size.y, size.z) || 1
+  model.scale.multiplyScalar(scene.model.scale / maxDim)
+
+  box.setFromObject(model)
+  model.position.sub(box.getCenter(new THREE.Vector3()))
+  model.position.z -= box.min.z
+}
+
+export function createWheelSpinClips(model: THREE.Object3D): THREE.AnimationClip[] {
+  const wheel = model.getObjectByName('pDisc1')
   if (!wheel) return []
 
-  const axis = 'y'
-  const path = `${wheel.name}.rotation[${axis}]`
+  const path = `${wheel.name}.rotation[z]`
 
   return [
     new THREE.AnimationClip('Spin', 2.4, [

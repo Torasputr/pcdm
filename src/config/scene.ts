@@ -27,9 +27,8 @@ export const scene = {
    * Use (0, 0) for dead center; z pops the model toward the camera.
    */
   model: {
-    position: { x: 0, y: 0, z: 0.08 },
-    /** Blender export is Y-up; rotate so the wheel stands up from the card. */
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 },
-    scale: 0.32,
+    position: { x: 0, y: 0, z: 0.02 },
+    rotation: { x: 0, y: 0, z: 0 },
+    scale: 0.85,
   },
 }
