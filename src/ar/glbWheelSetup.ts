@@ -23,12 +23,11 @@ export function applyGlbMaterials(model: THREE.Object3D) {
 }
 
 /**
- * Lay the model upright on the card — same orientation as the printed target:
- * X/Y aligned with the card, depth popping toward the camera (+Z).
+ * Upright on the card (portrait X/Y), back flush on the card, wheel toward camera.
+ * Blender export lives in -Z; shift +Z so the front faces the viewer.
  */
 export function prepareWheelGlbModel(model: THREE.Object3D) {
-  // Blender export sits in -Z; flip 180° on Y so depth extends out of the card.
-  model.rotation.set(0, Math.PI, 0)
+  model.rotation.set(0, 0, 0)
 
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())

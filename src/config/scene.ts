@@ -29,6 +29,6 @@ export const scene = {
   model: {
     position: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
-    scale: 1.05,
+    scale: 1.3,
   },
 }
