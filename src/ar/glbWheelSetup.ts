@@ -9,6 +9,8 @@ const MESH_COLORS: Record<string, string> = {
   pCylinderShape1: '#FFD700',
 }
 
+const SPIN_PIVOT_NAME = 'WheelSpinPivot'
+
 /** Locked upright portrait layout — matches the printed card orientation. */
 const LOCKED_ROTATION = scene.model.rotation
 
@@ -38,12 +40,43 @@ export function prepareWheelGlbModel(model: THREE.Object3D) {
   model.position.z -= box.min.z
 }
 
-export function createWheelSpinClips(model: THREE.Object3D): THREE.AnimationClip[] {
+/**
+ * Reparent the wheel onto a local pivot so spin is in-place (gear-like),
+ * matching Blender/Maya rotateZ on a tilted disc.
+ */
+export function attachWheelSpinPivot(model: THREE.Object3D): THREE.Object3D | null {
   const wheel = model.getObjectByName('pDisc1')
-  if (!wheel) return []
+  if (!wheel?.parent) return null
 
-  // Maya rotateZ 0→360; negate for clockwise when viewed from the front.
-  const path = `${wheel.name}.rotation[z]`
+  const parent = wheel.parent
+  const pivotPos = wheel.position.clone()
+  const pivotRot = wheel.rotation.clone()
+  const pivotScale = wheel.scale.clone()
+
+  const geomBox = new THREE.Box3().setFromObject(wheel)
+  const geomCenter = new THREE.Vector3()
+  geomBox.getCenter(geomCenter)
+
+  parent.remove(wheel)
+
+  const pivot = new THREE.Group()
+  pivot.name = SPIN_PIVOT_NAME
+  pivot.position.copy(pivotPos)
+  pivot.rotation.copy(pivotRot)
+  pivot.scale.copy(pivotScale)
+
+  wheel.position.copy(geomCenter).multiplyScalar(-1)
+  wheel.rotation.set(0, 0, 0)
+  wheel.scale.set(1, 1, 1)
+  pivot.add(wheel)
+  parent.add(pivot)
+
+  return pivot
+}
+
+export function createWheelSpinClips(spinPivot: THREE.Object3D): THREE.AnimationClip[] {
+  // Maya/Blender: static tilt on pivot, spin on local Z. Negative = clockwise.
+  const path = `${spinPivot.name}.rotation[z]`
 
   return [
     new THREE.AnimationClip('Spin', 2.4, [
@@ -58,18 +91,18 @@ export function createWheelSpinClips(model: THREE.Object3D): THREE.AnimationClip
   ]
 }
 
-/** Reverse spin direction on clips exported from the GLB (e.g. Blender/Maya). */
-export function normalizeWheelClips(clips: THREE.AnimationClip[]): THREE.AnimationClip[] {
+/** Retarget exported pDisc1 clips onto the spin pivot; flip for clockwise. */
+export function normalizeWheelClips(
+  clips: THREE.AnimationClip[],
+  spinPivotName = SPIN_PIVOT_NAME,
+): THREE.AnimationClip[] {
   return clips.map((clip) => {
     const tracks = clip.tracks.map((track) => {
       if (!track.name.includes('rotation')) return track
 
+      const name = track.name.replace(/^pDisc1\./, `${spinPivotName}.`)
       const values = Array.from(track.values, (v) => -v)
-      return new THREE.NumberKeyframeTrack(
-        track.name,
-        track.times.slice(),
-        values,
-      )
+      return new THREE.NumberKeyframeTrack(name, track.times.slice(), values)
     })
 
     return new THREE.AnimationClip(clip.name, clip.duration, tracks)

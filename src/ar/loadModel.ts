@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { scene } from '../config/scene'
 import {
   applyGlbMaterials,
+  attachWheelSpinPivot,
   createWheelSpinClips,
   normalizeWheelClips,
   prepareWheelGlbModel,
@@ -73,10 +74,13 @@ export async function loadCardModel(): Promise<CardModel> {
   applyGlbMaterials(model)
   prepareWheelGlbModel(model)
 
+  const spinPivot = attachWheelSpinPivot(model)
   const clips =
     gltf.animations.length > 0
-      ? normalizeWheelClips(gltf.animations)
-      : createWheelSpinClips(model)
+      ? normalizeWheelClips(gltf.animations, spinPivot?.name)
+      : spinPivot
+        ? createWheelSpinClips(spinPivot)
+        : []
 
   return wrapModel(model, clips, true)
 }
