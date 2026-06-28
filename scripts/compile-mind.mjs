@@ -36,7 +36,7 @@ class NodeCompiler extends CompilerBase {
   }
 }
 
-const imagePath = process.argv[2] ?? join(__dirname, '../public/scene/card-target.png')
+const imagePath = process.argv[2] ?? join(__dirname, '../public/scene/card-target.jpg')
 const outputPath = process.argv[3] ?? join(__dirname, '../public/scene/card-target.mind')
 
 await tf.setBackend('cpu')

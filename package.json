@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/sync-assets.mjs && vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "generate-card": "node scripts/generate-sample-card.mjs",
+    "generate-wheel-card": "node scripts/generate-wheel-card.mjs",
     "compile-target": "node scripts/compile-mind.mjs"
   },
   "dependencies": {

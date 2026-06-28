@@ -1,7 +1,9 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { scene } from '../config/scene'
+import { applyGlbMaterials, createWheelSpinClips } from './glbWheelSetup'
 import { ModelAnimations } from './modelAnimations'
+import { buildWheelOfFortuneModel } from './wheelOfFortuneModel'
 
 export interface CardModel {
   root: THREE.Group
@@ -9,33 +11,7 @@ export interface CardModel {
   animations: ModelAnimations | null
 }
 
-export async function loadCardModel(): Promise<CardModel> {
-  const loader = new GLTFLoader()
-  let gltf
-  try {
-    gltf = await loader.loadAsync(scene.modelFile)
-  } catch {
-    gltf = await loader.loadAsync(
-      'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
-    )
-  }
-  const model = gltf.scene
-
-  model.traverse((child) => {
-    if (!(child instanceof THREE.Mesh)) return
-    const mats = Array.isArray(child.material) ? child.material : [child.material]
-    mats.forEach((mat) => {
-      if (
-        mat instanceof THREE.MeshStandardMaterial ||
-        mat instanceof THREE.MeshPhysicalMaterial
-      ) {
-        mat.metalness = Math.min(mat.metalness, 0.3)
-        mat.roughness = Math.max(mat.roughness, 0.45)
-      }
-      mat.needsUpdate = true
-    })
-  })
-
+function applyModelTransform(model: THREE.Object3D) {
   const box = new THREE.Box3().setFromObject(model)
   const size = box.getSize(new THREE.Vector3())
   const maxDim = Math.max(size.x, size.y, size.z) || 1
@@ -43,6 +19,12 @@ export async function loadCardModel(): Promise<CardModel> {
 
   box.setFromObject(model)
   model.position.sub(box.getCenter(new THREE.Vector3()))
+  box.setFromObject(model)
+  model.position.y -= box.min.y
+}
+
+function wrapModel(model: THREE.Object3D, clips: THREE.AnimationClip[]): CardModel {
+  applyModelTransform(model)
 
   const scaleGroup = new THREE.Group()
   scaleGroup.add(model)
@@ -61,9 +43,26 @@ export async function loadCardModel(): Promise<CardModel> {
   )
 
   const animations =
-    gltf.animations.length > 0
-      ? new ModelAnimations(model, gltf.animations)
-      : null
+    clips.length > 0 ? new ModelAnimations(model, clips) : null
 
   return { root, scaleGroup, animations }
+}
+
+export async function loadCardModel(): Promise<CardModel> {
+  if (scene.modelKind === 'procedural') {
+    const { model, clips } = buildWheelOfFortuneModel()
+    return wrapModel(model, clips)
+  }
+
+  const gltf = await new GLTFLoader().loadAsync(scene.modelFile)
+  const model = gltf.scene
+
+  applyGlbMaterials(model)
+
+  const clips =
+    gltf.animations.length > 0
+      ? gltf.animations
+      : createWheelSpinClips(model)
+
+  return wrapModel(model, clips)
 }

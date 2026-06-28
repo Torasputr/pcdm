@@ -3,21 +3,23 @@
  * Put assets in public/scene/
  */
 export const scene = {
-  name: 'Wifi Kawanku',
-  tagline: 'Point your camera at the card to unlock the AR experience',
-  accent: '#F5B800',
+  name: 'Wheel of Fortune',
+  tagline: 'Scan the card and tap to spin the wheel',
+  accent: '#FFD700',
 
   /** Image printed on the card (must match compiled target). */
-  cardImage: '/scene/card-target.png',
+  cardImage: '/scene/card-target.jpg',
   /** Compiled MindAR tracker — run `npm run compile-target` after changing card image. */
   mindFile: '/scene/card-target.mind',
-  /** 3D model shown on the card. */
+  /** `procedural` builds the wheel in code; `glb` loads modelFile. */
+  modelKind: 'glb' as 'procedural' | 'glb',
+  /** 3D model shown on the card (used when modelKind is `glb`). */
   modelFile: '/scene/model.glb',
 
   startButton: 'Start AR Experience',
-  scanningHint: 'Align your WIFI KAWANKU card inside the frame',
+  scanningHint: 'Align the Wheel of Fortune card inside the frame',
   foundHint: 'Move around to explore from different angles',
-  tapToAnimateHint: 'Tap the screen to play animations',
+  tapToAnimateHint: 'Tap the screen to spin the wheel',
   loadingSteps: ['Preparing AR', 'Loading 3D model', 'Starting camera'],
 
   /**
@@ -25,8 +27,9 @@ export const scene = {
    * Use (0, 0) for dead center; z pops the model toward the camera.
    */
   model: {
-    position: { x: 0, y: 0, z: 0.12 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: 0.28,
+    position: { x: 0, y: 0, z: 0.08 },
+    /** Blender export is Y-up; rotate so the wheel stands up from the card. */
+    rotation: { x: -Math.PI / 2, y: 0, z: 0 },
+    scale: 0.32,
   },
 }
